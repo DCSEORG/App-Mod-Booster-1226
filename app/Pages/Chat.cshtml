@@ -1,0 +1,245 @@
+@page "/chat"
+@model ExpenseManagement.Pages.ChatModel
+@{
+    ViewData["Title"] = "AI Assistant";
+    ViewData["ActivePage"] = "Chat";
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <h1 class="h3 mb-1 fw-bold text-dark"><i class="bi bi-chat-dots me-2 text-primary"></i>AI Assistant</h1>
+        <p class="text-muted mb-0">Ask questions about your expenses in natural language</p>
+    </div>
+</div>
+
+@if (!Model.IsGenAIConfigured)
+{
+    <div class="alert alert-info border-0 shadow-sm mb-4">
+        <div class="d-flex">
+            <i class="bi bi-info-circle-fill fs-4 me-3 text-info flex-shrink-0 mt-1"></i>
+            <div>
+                <strong>GenAI services are not configured.</strong>
+                <p class="mb-1 mt-1">The AI chat assistant requires Azure OpenAI (GPT-4o) to be deployed. To enable full chat experience:</p>
+                <pre class="bg-dark text-white rounded p-2 mb-0 small">bash deploy-with-chat.sh</pre>
+                <p class="mb-0 mt-2 text-muted small">Until then, the chat will return demo responses.</p>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="row g-4" style="height: calc(100vh - 280px); min-height: 500px;">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm d-flex flex-column h-100">
+            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center">
+                <div class="avatar me-2 bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width:36px;height:36px;">
+                    <i class="bi bi-robot text-primary"></i>
+                </div>
+                <div>
+                    <div class="fw-semibold">ExpenseHub AI</div>
+                    <div class="text-muted small">Powered by Azure OpenAI GPT-4o</div>
+                </div>
+                @if (Model.IsGenAIConfigured)
+                {
+                    <span class="badge bg-success ms-auto">Connected</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary ms-auto">Demo Mode</span>
+                }
+            </div>
+
+            <!-- Messages area -->
+            <div id="chatMessages" class="flex-grow-1 overflow-auto p-4" style="min-height:0;">
+                <!-- Welcome message -->
+                <div class="d-flex mb-3">
+                    <div class="avatar me-2 bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px;">
+                        <i class="bi bi-robot text-primary small"></i>
+                    </div>
+                    <div class="chat-bubble assistant">
+                        <strong>Hello! 👋</strong> I'm your Expense Management AI assistant.<br/><br/>
+                        I can help you:
+                        <ul class="mb-0 mt-1">
+                            <li>List and filter expenses</li>
+                            <li>Show expense details and summaries</li>
+                            <li>Submit, approve, or reject expenses</li>
+                            <li>Answer questions about your team's spending</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Typing indicator (hidden) -->
+            <div id="typingIndicator" class="px-4 py-2 d-none">
+                <div class="d-flex">
+                    <div class="avatar me-2 bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px;">
+                        <i class="bi bi-robot text-primary small"></i>
+                    </div>
+                    <div class="chat-bubble assistant d-flex align-items-center" style="min-width:60px;">
+                        <div class="typing-indicator">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input area -->
+            <div class="card-footer bg-white border-top p-3">
+                <form id="chatForm" class="d-flex gap-2">
+                    <input type="text" id="chatInput" class="form-control" placeholder="Ask about expenses, users, approvals..." autocomplete="off" />
+                    <button type="submit" class="btn btn-primary px-4" id="sendBtn">
+                        <i class="bi bi-send-fill"></i>
+                    </button>
+                </form>
+                <div class="mt-2 d-flex flex-wrap gap-1">
+                    <button class="btn btn-outline-secondary btn-sm quick-q" data-q="Show me all submitted expenses">Pending approvals</button>
+                    <button class="btn btn-outline-secondary btn-sm quick-q" data-q="What are the total approved expenses this month?">Total approved</button>
+                    <button class="btn btn-outline-secondary btn-sm quick-q" data-q="List all expenses for Alice Example">Alice's expenses</button>
+                    <button class="btn btn-outline-secondary btn-sm quick-q" data-q="Show me all draft expenses">All drafts</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 d-none d-lg-flex flex-column gap-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h6 class="fw-semibold mb-3"><i class="bi bi-lightning-charge me-2 text-warning"></i>Quick Actions</h6>
+                <div class="d-grid gap-2">
+                    <a href="/Expenses/Create" class="btn btn-outline-primary btn-sm text-start">
+                        <i class="bi bi-plus-circle me-2"></i>Create New Expense
+                    </a>
+                    <a href="/Expenses?status=2" class="btn btn-outline-warning btn-sm text-start">
+                        <i class="bi bi-clock me-2"></i>Review Pending
+                    </a>
+                    <a href="/Expenses" class="btn btn-outline-secondary btn-sm text-start">
+                        <i class="bi bi-list-ul me-2"></i>All Expenses
+                    </a>
+                    <a href="/swagger" target="_blank" class="btn btn-outline-secondary btn-sm text-start">
+                        <i class="bi bi-code-slash me-2"></i>API Explorer
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h6 class="fw-semibold mb-3"><i class="bi bi-question-circle me-2 text-info"></i>Sample Questions</h6>
+                <ul class="list-unstyled small text-muted mb-0">
+                    <li class="mb-2">💬 "Show all expenses over £100"</li>
+                    <li class="mb-2">💬 "How many expenses are pending?"</li>
+                    <li class="mb-2">💬 "Approve expense #3"</li>
+                    <li class="mb-2">💬 "List travel expenses"</li>
+                    <li class="mb-2">💬 "Who submitted expenses this week?"</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+const chatMessages = document.getElementById('chatMessages');
+const chatForm = document.getElementById('chatForm');
+const chatInput = document.getElementById('chatInput');
+const sendBtn = document.getElementById('sendBtn');
+const typingIndicator = document.getElementById('typingIndicator');
+
+function escapeHtml(text) {
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function formatMessage(text) {
+    let escaped = escapeHtml(text);
+    // Bold: **text**
+    escaped = escaped.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    // Code blocks
+    escaped = escaped.replace(/```([^`]+)```/g, '<pre class="bg-light rounded p-2 small mt-1 mb-1">$1</pre>');
+    // Inline code
+    escaped = escaped.replace(/`([^`]+)`/g, '<code class="bg-light px-1 rounded">$1</code>');
+
+    // Lists
+    const lines = escaped.split('\n');
+    const result = [];
+    let inUl = false, inOl = false;
+
+    for (const line of lines) {
+        const olMatch = line.match(/^(\d+)\.\s+(.+)/);
+        const ulMatch = line.match(/^[-*]\s+(.+)/);
+
+        if (olMatch) {
+            if (!inOl) { if (inUl) { result.push('</ul>'); inUl = false; } result.push('<ol>'); inOl = true; }
+            result.push(`<li>${olMatch[2]}</li>`);
+        } else if (ulMatch) {
+            if (!inUl) { if (inOl) { result.push('</ol>'); inOl = false; } result.push('<ul>'); inUl = true; }
+            result.push(`<li>${ulMatch[1]}</li>`);
+        } else {
+            if (inUl) { result.push('</ul>'); inUl = false; }
+            if (inOl) { result.push('</ol>'); inOl = false; }
+            result.push(line || '<br>');
+        }
+    }
+    if (inUl) result.push('</ul>');
+    if (inOl) result.push('</ol>');
+
+    return result.join('\n').replace(/\n(?!<)/g, '<br>');
+}
+
+function addMessage(text, role) {
+    const wrapper = document.createElement('div');
+    wrapper.className = `d-flex mb-3 ${role === 'user' ? 'justify-content-end' : ''}`;
+
+    if (role === 'assistant') {
+        wrapper.innerHTML = `
+            <div class="avatar me-2 bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px;">
+                <i class="bi bi-robot text-primary small"></i>
+            </div>
+            <div class="chat-bubble assistant">${formatMessage(text)}</div>`;
+    } else {
+        wrapper.innerHTML = `
+            <div class="chat-bubble user">${escapeHtml(text)}</div>`;
+    }
+
+    chatMessages.appendChild(wrapper);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+async function sendMessage(message) {
+    if (!message.trim()) return;
+    addMessage(message, 'user');
+    chatInput.value = '';
+    sendBtn.disabled = true;
+    typingIndicator.classList.remove('d-none');
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    try {
+        const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message })
+        });
+        const data = await res.json();
+        typingIndicator.classList.add('d-none');
+        addMessage(data.response || 'Sorry, I could not process that request.', 'assistant');
+    } catch (e) {
+        typingIndicator.classList.add('d-none');
+        addMessage('⚠️ Error connecting to the AI service. Please try again.', 'assistant');
+    } finally {
+        sendBtn.disabled = false;
+        chatInput.focus();
+    }
+}
+
+chatForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    sendMessage(chatInput.value);
+});
+
+document.querySelectorAll('.quick-q').forEach(btn => {
+    btn.addEventListener('click', () => sendMessage(btn.dataset.q));
+});
+</script>
+}

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ExpenseHub AI Chat</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+    <style>
+        body { background: #f1f5f9; font-family: 'Segoe UI', system-ui, sans-serif; }
+        .chat-wrap { height: 100vh; display: flex; flex-direction: column; max-width: 900px; margin: 0 auto; }
+        #messages { flex: 1; overflow-y: auto; padding: 1.5rem; scroll-behavior: smooth; }
+        .bubble { max-width: 80%; border-radius: 1rem; padding: .75rem 1rem; line-height: 1.5; }
+        .bubble.user { background: #2563eb; color: #fff; border-bottom-right-radius: .25rem; margin-left: auto; }
+        .bubble.assistant { background: #fff; border: 1px solid #e2e8f0; border-bottom-left-radius: .25rem; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+        .bubble ul, .bubble ol { padding-left: 1.25rem; margin-bottom: .5rem; }
+        .bubble li { margin-bottom: .2rem; }
+        .typing span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; margin: 0 2px; animation: bounce 1.2s infinite; }
+        .typing span:nth-child(2) { animation-delay: .2s; }
+        .typing span:nth-child(3) { animation-delay: .4s; }
+        @keyframes bounce { 0%,60%,100% { transform:translateY(0); } 30% { transform:translateY(-6px); } }
+    </style>
+</head>
+<body>
+    <div class="chat-wrap shadow-sm bg-white">
+        <div class="border-bottom p-3 d-flex align-items-center bg-primary text-white">
+            <i class="bi bi-robot fs-4 me-2"></i>
+            <div>
+                <div class="fw-bold">ExpenseHub AI</div>
+                <div class="small opacity-75">Powered by Azure OpenAI GPT-4o</div>
+            </div>
+            <span id="statusBadge" class="badge bg-light text-secondary ms-auto">Checking...</span>
+        </div>
+
+        <div id="configWarning" class="alert alert-warning m-3 d-none">
+            <strong>⚠️ GenAI not configured.</strong> Run <code>bash deploy-with-chat.sh</code> to enable full AI chat.
+            Until then, demo responses will be returned.
+        </div>
+
+        <div id="messages"></div>
+
+        <div id="typingRow" class="px-4 py-2 d-none">
+            <div class="d-flex gap-2">
+                <div class="bubble assistant d-flex align-items-center" style="min-width:60px;">
+                    <div class="typing"><span></span><span></span><span></span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="border-top p-3 bg-white">
+            <div class="d-flex gap-2 mb-2">
+                <button class="btn btn-outline-secondary btn-sm quick" data-q="Show all submitted expenses">Pending</button>
+                <button class="btn btn-outline-secondary btn-sm quick" data-q="List all approved expenses">Approved</button>
+                <button class="btn btn-outline-secondary btn-sm quick" data-q="Show me all users">Users</button>
+                <button class="btn btn-outline-secondary btn-sm quick" data-q="Summarise all expenses">Summary</button>
+            </div>
+            <form id="chatForm" class="d-flex gap-2">
+                <input id="chatInput" type="text" class="form-control" placeholder="Ask about expenses..." autocomplete="off" />
+                <button type="submit" class="btn btn-primary px-4" id="sendBtn">
+                    <i class="bi bi-send-fill"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    // Configuration - reads from relative API endpoint
+    const API_BASE = window.location.origin;
+
+    function escapeHtml(t) {
+        return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function formatMessage(text) {
+        let s = escapeHtml(text);
+        s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        s = s.replace(/`([^`]+)`/g, '<code class="bg-light px-1 rounded">$1</code>');
+        const lines = s.split('\n');
+        const out = [];
+        let inUl = false, inOl = false;
+        for (const line of lines) {
+            const ol = line.match(/^(\d+)\.\s+(.+)/);
+            const ul = line.match(/^[-*]\s+(.+)/);
+            if (ol) {
+                if (!inOl) { if (inUl) { out.push('</ul>'); inUl=false; } out.push('<ol>'); inOl=true; }
+                out.push('<li>'+ol[2]+'</li>');
+            } else if (ul) {
+                if (!inUl) { if (inOl) { out.push('</ol>'); inOl=false; } out.push('<ul>'); inUl=true; }
+                out.push('<li>'+ul[1]+'</li>');
+            } else {
+                if (inUl) { out.push('</ul>'); inUl=false; }
+                if (inOl) { out.push('</ol>'); inOl=false; }
+                out.push(line || '<br>');
+            }
+        }
+        if (inUl) out.push('</ul>');
+        if (inOl) out.push('</ol>');
+        return out.join('\n').replace(/\n(?!<)/g,'<br>');
+    }
+
+    const messages = document.getElementById('messages');
+
+    function addMessage(text, role) {
+        const wrap = document.createElement('div');
+        wrap.className = 'd-flex mb-3 ' + (role==='user' ? 'justify-content-end' : '');
+        if (role === 'user') {
+            wrap.innerHTML = `<div class="bubble user">${escapeHtml(text)}</div>`;
+        } else {
+            wrap.innerHTML = `
+                <div class="me-2 bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px;min-width:32px;">
+                    <i class="bi bi-robot text-primary small"></i>
+                </div>
+                <div class="bubble assistant">${formatMessage(text)}</div>`;
+        }
+        messages.appendChild(wrap);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    // Add welcome message
+    addMessage("Hello! 👋 I'm your ExpenseHub AI assistant. I can help you with expenses, approvals, and more. What would you like to know?", 'assistant');
+
+    async function sendMessage(msg) {
+        if (!msg.trim()) return;
+        addMessage(msg, 'user');
+        document.getElementById('chatInput').value = '';
+        document.getElementById('sendBtn').disabled = true;
+        document.getElementById('typingRow').classList.remove('d-none');
+        messages.scrollTop = messages.scrollHeight;
+
+        try {
+            const res = await fetch(API_BASE + '/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: msg })
+            });
+            const data = await res.json();
+            document.getElementById('typingRow').classList.add('d-none');
+            addMessage(data.response || 'No response received.', 'assistant');
+        } catch(e) {
+            document.getElementById('typingRow').classList.add('d-none');
+            addMessage('⚠️ Error: Could not reach the API. Is the app running?', 'assistant');
+        } finally {
+            document.getElementById('sendBtn').disabled = false;
+            document.getElementById('chatInput').focus();
+        }
+    }
+
+    document.getElementById('chatForm').addEventListener('submit', e => {
+        e.preventDefault();
+        sendMessage(document.getElementById('chatInput').value);
+    });
+
+    document.querySelectorAll('.quick').forEach(b => {
+        b.addEventListener('click', () => sendMessage(b.dataset.q));
+    });
+
+    // Check if API is reachable
+    fetch(API_BASE + '/api/statuses').then(r => {
+        if (r.ok) {
+            document.getElementById('statusBadge').className = 'badge bg-success ms-auto';
+            document.getElementById('statusBadge').textContent = 'Connected';
+        } else {
+            document.getElementById('statusBadge').className = 'badge bg-warning text-dark ms-auto';
+            document.getElementById('statusBadge').textContent = 'API Error';
+        }
+    }).catch(() => {
+        document.getElementById('statusBadge').className = 'badge bg-danger ms-auto';
+        document.getElementById('statusBadge').textContent = 'Disconnected';
+        document.getElementById('configWarning').classList.remove('d-none');
+    });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "OpenAI": {
+    "Endpoint": "",
+    "DeploymentName": "gpt-4o"
+  },
+  "Search": {
+    "Endpoint": ""
+  },
+  "ManagedIdentityClientId": ""
+}

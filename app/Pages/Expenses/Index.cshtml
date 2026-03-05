@@ -1,0 +1,132 @@
+@page
+@model ExpenseManagement.Pages.Expenses.IndexModel
+@{
+    ViewData["Title"] = "Expenses";
+    ViewData["ActivePage"] = "Expenses";
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-1 fw-bold text-dark"><i class="bi bi-list-ul me-2 text-primary"></i>Expenses</h1>
+                <p class="text-muted mb-0">@Model.Expenses.Count expense(s) found</p>
+            </div>
+            <a href="/Expenses/Create" class="btn btn-primary shadow-sm">
+                <i class="bi bi-plus-lg me-2"></i>New Expense
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold text-muted">STATUS</label>
+                <select name="statusFilter" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    @foreach (var s in Model.Statuses)
+                    {
+                        <option value="@s.StatusId" selected="@(Model.StatusFilter == s.StatusId)">@s.StatusName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold text-muted">CATEGORY</label>
+                <select name="categoryFilter" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Categories</option>
+                    @foreach (var c in Model.Categories)
+                    {
+                        <option value="@c.CategoryId" selected="@(Model.CategoryFilter == c.CategoryId)">@c.CategoryName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold text-muted">EMPLOYEE</label>
+                <select name="userFilter" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Employees</option>
+                    @foreach (var u in Model.Users)
+                    {
+                        <option value="@u.UserId" selected="@(Model.UserFilter == u.UserId)">@u.UserName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <a href="/Expenses" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-x-circle me-1"></i>Clear Filters
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Expenses Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        @if (Model.Expenses.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">ID</th>
+                            <th>Employee</th>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                            <th class="pe-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var e in Model.Expenses)
+                        {
+                            var rowClass = e.StatusName == "Submitted" ? "table-warning" : "";
+                            <tr class="@rowClass">
+                                <td class="ps-4"><span class="badge bg-secondary">#@e.ExpenseId</span></td>
+                                <td><i class="bi bi-person-circle me-1 text-muted"></i>@e.UserName</td>
+                                <td><span class="badge bg-light text-dark border">@e.CategoryName</span></td>
+                                <td class="text-truncate" style="max-width:180px;" title="@e.Description">@(e.Description ?? "—")</td>
+                                <td class="fw-semibold text-end">£@e.AmountDecimal.ToString("N2")</td>
+                                <td>@e.ExpenseDate.ToString("dd MMM yyyy")</td>
+                                <td>
+                                    @{
+                                        var (cls, icon) = e.StatusName switch {
+                                            "Draft"     => ("bg-secondary", "bi-pencil"),
+                                            "Submitted" => ("bg-warning text-dark", "bi-clock"),
+                                            "Approved"  => ("bg-success", "bi-check-circle"),
+                                            "Rejected"  => ("bg-danger", "bi-x-circle"),
+                                            _           => ("bg-secondary", "bi-question")
+                                        };
+                                    }
+                                    <span class="badge @cls"><i class="bi @icon me-1"></i>@e.StatusName</span>
+                                </td>
+                                <td class="text-muted small">@(e.SubmittedAt?.ToString("dd MMM") ?? "—")</td>
+                                <td class="pe-4">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="/Expenses/Details/@e.ExpenseId" class="btn btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
+                                        @if (e.StatusName == "Draft")
+                                        {
+                                            <a href="/Expenses/Edit/@e.ExpenseId" class="btn btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-search display-4 d-block mb-3"></i>
+                <p>No expenses match your filters. <a href="/Expenses/Create">Create a new expense</a>.</p>
+            </div>
+        }
+    </div>
+</div>
