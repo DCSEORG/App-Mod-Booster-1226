@@ -7,8 +7,7 @@ from azure.identity import AzureCliCredential
 # Database connection settings - updated by deploy.sh
 SERVER = "example.database.windows.net"
 DATABASE = "Northwind"
-SQL_SCRIPT_FILE = "script.sql"
-
+SQL_SCRIPT_FILE = "script.sql.tmp"
 def get_access_token():
     """Get Azure AD access token using Azure CLI credentials"""
     credential = AzureCliCredential()

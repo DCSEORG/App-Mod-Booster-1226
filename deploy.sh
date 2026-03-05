@@ -82,8 +82,12 @@ echo "Step 6: Waiting 30 seconds for SQL Server to be fully ready..."
 sleep 30
 
 # ── 7. Replace Managed Identity placeholder in script.sql ────────────────────
+# Note: app.zip must exist (built via: cd app && dotnet publish -c Release -o ./publish && cd publish && zip -r ../app.zip . && cd ..)
 echo "Step 7: Preparing managed identity DB role script..."
-sed -i.bak "s/MANAGED-IDENTITY-NAME/$MANAGED_IDENTITY_NAME/g" script.sql && rm -f script.sql.bak
+# Create a working copy to avoid permanently modifying the source file
+cp script.sql script.sql.working
+sed -i.bak "s/MANAGED-IDENTITY-NAME/$MANAGED_IDENTITY_NAME/g" script.sql.working && rm -f script.sql.working.bak
+cp script.sql.working script.sql.tmp && rm -f script.sql.working
 
 # ── 8. Install Python Dependencies ───────────────────────────────────────────
 echo "Step 8: Installing Python dependencies..."
@@ -109,6 +113,8 @@ sed -i.bak "s|DATABASE = \"Northwind\"|DATABASE = \"$DATABASE_NAME\"|g" run-sql-
 python3 run-sql-stored-procs.py
 
 # ── 12. Deploy App Code ────────────────────────────────────────────────────────
+# Note: app.zip is pre-built and included in the repo at root level (app/app.zip)
+# To rebuild: cd app && dotnet publish -c Release -o ./publish && cd publish && zip -r ../app.zip . && cd ../..
 echo "Step 12: Deploying application code..."
 az webapp deploy \
   --resource-group "$RESOURCE_GROUP" \
