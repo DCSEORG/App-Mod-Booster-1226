@@ -1,0 +1,82 @@
+@page "{id:int}"
+@model ExpenseManagement.Pages.Expenses.EditModel
+@{
+    ViewData["Title"] = $"Edit Expense #{Model.Expense?.ExpenseId}";
+    ViewData["ActivePage"] = "Expenses";
+    var expense = Model.Expense!;
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="d-flex align-items-center mb-4">
+            <a href="/Expenses/Details/@expense.ExpenseId" class="btn btn-outline-secondary btn-sm me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="h3 mb-0 fw-bold"><i class="bi bi-pencil me-2 text-primary"></i>Edit Expense #@expense.ExpenseId</h1>
+                <p class="text-muted mb-0 small">Modify the expense details below</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="post" asp-route-id="@expense.ExpenseId">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="Input.CategoryId" class="form-label fw-semibold">Category</label>
+                            <select asp-for="Input.CategoryId" class="form-select" required>
+                                @foreach (var c in Model.Categories)
+                                {
+                                    <option value="@c.CategoryId" selected="@(Model.Input.CategoryId == c.CategoryId)">@c.CategoryName</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Amount (£)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">£</span>
+                                <input type="number" class="form-control" id="amountDisplay"
+                                       value="@(Model.Input.AmountMinor / 100.0m)"
+                                       step="0.01" min="0.01" required
+                                       onchange="updateAmountMinor(this.value)" />
+                                <input type="hidden" asp-for="Input.AmountMinor" id="amountMinor" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Input.ExpenseDate" class="form-label fw-semibold">Expense Date</label>
+                            <input asp-for="Input.ExpenseDate" type="date" class="form-control"
+                                   value="@Model.Input.ExpenseDate.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Input.Description" class="form-label fw-semibold">Description</label>
+                            <textarea asp-for="Input.Description" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Input.ReceiptFile" class="form-label fw-semibold">Receipt Reference</label>
+                            <input asp-for="Input.ReceiptFile" class="form-control" />
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="/Expenses/Details/@expense.ExpenseId" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-save me-2"></i>Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function updateAmountMinor(val) {
+    var minor = Math.round(parseFloat(val) * 100);
+    document.getElementById('amountMinor').value = isNaN(minor) ? 0 : minor;
+}
+</script>
+}

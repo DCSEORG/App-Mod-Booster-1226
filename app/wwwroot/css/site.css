@@ -1,0 +1,96 @@
+/* ExpenseHub - Site Styles */
+
+:root {
+    --primary: #2563eb;
+    --surface: #f8fafc;
+}
+
+body {
+    background-color: var(--surface);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* Action cards hover effect */
+.action-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    cursor: pointer;
+}
+.action-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
+}
+
+/* Table improvements */
+.table th {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+}
+
+/* Card header */
+.card-header {
+    font-weight: 600;
+}
+
+/* Navbar active link */
+.navbar-nav .nav-link.active {
+    font-weight: 600;
+}
+
+/* Chat bubble styles */
+.chat-bubble {
+    max-width: 85%;
+    border-radius: 1rem;
+    padding: 0.75rem 1rem;
+    line-height: 1.5;
+}
+.chat-bubble.user {
+    background: #2563eb;
+    color: white;
+    border-bottom-right-radius: 0.25rem;
+    margin-left: auto;
+}
+.chat-bubble.assistant {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-bottom-left-radius: 0.25rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.chat-bubble.assistant ul,
+.chat-bubble.assistant ol {
+    padding-left: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+.chat-bubble.assistant li {
+    margin-bottom: 0.25rem;
+}
+
+/* Typing indicator */
+.typing-indicator span {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #94a3b8;
+    margin: 0 2px;
+    animation: bounce 1.2s infinite;
+}
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+}
+
+/* Scrollable chat messages */
+#chatMessages {
+    scroll-behavior: smooth;
+}
+
+/* Avatar */
+.avatar {
+    flex-shrink: 0;
+}

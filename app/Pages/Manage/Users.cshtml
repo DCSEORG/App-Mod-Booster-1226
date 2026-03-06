@@ -1,0 +1,69 @@
+@page
+@model ExpenseManagement.Pages.Manage.UsersModel
+@{
+    ViewData["Title"] = "Users";
+    ViewData["ActivePage"] = "Users";
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-1 fw-bold text-dark"><i class="bi bi-people me-2 text-primary"></i>Users</h1>
+                <p class="text-muted mb-0">@Model.Users.Count user(s) in the system</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    @foreach (var user in Model.Users)
+    {
+        <div class="col-lg-4 col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="avatar me-3 bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;">
+                            <i class="bi bi-person-fill fs-4 text-primary"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold">@user.UserName</div>
+                            <div class="text-muted small">@user.Email</div>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        @{
+                            var roleCls = user.RoleName == "Manager" ? "bg-primary" : "bg-info";
+                        }
+                        <span class="badge @roleCls"><i class="bi bi-shield me-1"></i>@user.RoleName</span>
+                        @if (user.IsActive)
+                        {
+                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </div>
+                    @if (!string.IsNullOrEmpty(user.ManagerName))
+                    {
+                        <div class="text-muted small"><i class="bi bi-diagram-3 me-1"></i>Reports to: <strong>@user.ManagerName</strong></div>
+                    }
+                    <div class="text-muted small mt-1"><i class="bi bi-calendar3 me-1"></i>Joined: @user.CreatedAt.ToString("dd MMM yyyy")</div>
+                </div>
+                <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center py-2">
+                    <a href="/Expenses?userFilter=@user.UserId" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-list-ul me-1"></i>View Expenses
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+    @if (!Model.Users.Any())
+    {
+        <div class="col-12 text-center py-5 text-muted">
+            <i class="bi bi-people display-4 d-block mb-3"></i>
+            <p>No users found.</p>
+        </div>
+    }
+</div>

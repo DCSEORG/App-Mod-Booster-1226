@@ -1,0 +1,29 @@
+# .NET
+obj/
+bin/
+*.user
+.vs/
+.vscode/
+publish/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+
+# Secrets (never commit these)
+*.pfx
+*.p12
+GenAISettings.local.json
+
+# app.zip is intentionally included in the repo for deployment
+# !app.zip
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Azure deployment artifacts
+*.bak
